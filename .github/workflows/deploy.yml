@@ -1,0 +1,97 @@
+# Deploy: build, test, Docker e ECS. Substitua deployment_name, project_name e dockerfile_path.
+
+name: Deploy Worker
+
+on:
+  push:
+    branches: [dev, qa, sbx, prd]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  prepare:
+    name: Load environment variables
+    runs-on: ubuntu-latest
+    outputs:
+      ecr_registry: ${{ steps.vars.outputs.ecr_registry }}
+      ecs_cluster: ${{ steps.vars.outputs.ecs_cluster }}
+      aws_role_arn: ${{ steps.vars.outputs.aws_role_arn }}
+      technology: dotnet
+      technology_version: '8.0'
+      working_directory: src
+      service_type: worker
+      # TODO: Substituir pelo nome do seu serviço (ex: sbx-0093-wrk-out-nfe-epec-handler-service)
+      deployment_name: ${{ github.ref_name }}-HelloWorld-worker-service
+      # TODO: Substituir pelo nome do projeto Worker (ex: NFeEpecHandler.Infra.Worker)
+      project_name: HelloWorld.Infra.Worker
+      ecr_repo: outbound
+    steps:
+      - name: Resolve environment variables
+        id: vars
+        run: |
+          ENV="${{ github.ref_name }}"
+          case "$ENV" in
+            sbx)  CONFIG='${{ vars.SBX_CONFIG_DEPLOY }}' ;;
+            prd)  CONFIG='${{ vars.PRD_CONFIG_DEPLOY }}' ;;
+            dev)  CONFIG='${{ vars.DEV_CONFIG_DEPLOY }}' ;;
+            qa)   CONFIG='${{ vars.QA_CONFIG_DEPLOY }}' ;;
+            *)    echo "Invalid environment: $ENV"; exit 1 ;;
+          esac
+          for key in ecr_registry ecs_cluster aws_role_arn; do
+            val=$(echo "$CONFIG" | jq -r --arg k "$key" '.[$k] // ""')
+            echo "${key}=${val}" >> $GITHUB_OUTPUT
+          done
+
+  build:
+    name: Build
+    needs: [prepare]
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-build.yml@main
+    with:
+      technology: ${{ needs.prepare.outputs.technology }}
+      technology_version: ${{ needs.prepare.outputs.technology_version }}
+      working_directory: ${{ needs.prepare.outputs.working_directory }}
+
+  test:
+    name: Test
+    needs: [build]
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-test.yml@main
+    with:
+      technology: ${{ needs.prepare.outputs.technology }}
+      technology_version: ${{ needs.prepare.outputs.technology_version }}
+      working_directory: ${{ needs.prepare.outputs.working_directory }}
+      skip_tests: true
+
+  docker:
+    name: Docker
+    needs: [test, prepare]
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-docker.yml@main
+    with:
+      environment: ${{ github.ref_name }}
+      ecr_repo: ${{ needs.prepare.outputs.ecr_repo }}
+      service_type: ${{ needs.prepare.outputs.service_type }}
+      tag_name: ${{ needs.prepare.outputs.deployment_name }}
+      project_name: ${{ needs.prepare.outputs.project_name }}
+      aws_role_arn: ${{ needs.prepare.outputs.aws_role_arn }}
+      ecr_registry: ${{ needs.prepare.outputs.ecr_registry }}
+      push: true
+      build_context: src
+      use_template_dockerfile: false
+      # TODO: Ajustar caminho do Dockerfile (ex: src/NFeEpecHandler.Infra.Worker/Dockerfile)
+      dockerfile_path: src/HelloWorld.Infra.Worker/Dockerfile
+    secrets:
+      templates_token: ${{ secrets.INFRA_CI_CD_READ_TOKEN }}
+
+  deploy:
+    name: Deploy to ECS
+    needs: [docker, prepare]
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-deploy.yml@main
+    with:
+      image_uri: ${{ needs.docker.outputs.full_image_uri }}
+      ecs_service: ${{ needs.prepare.outputs.deployment_name }}
+      environment: ${{ github.ref_name }}
+      service_type: ${{ needs.prepare.outputs.service_type }}
+      ecs_cluster: ${{ needs.prepare.outputs.ecs_cluster }}
+      aws_role_arn: ${{ needs.prepare.outputs.aws_role_arn }}

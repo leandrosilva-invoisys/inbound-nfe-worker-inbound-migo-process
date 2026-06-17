@@ -1,0 +1,25 @@
+# CI: build e testes em PRs. Substitua HelloWorld pelo nome do seu projeto.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, qa, sbx, prd]
+
+jobs:
+  build:
+    name: Build
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-build.yml@main
+    with:
+      technology: dotnet
+      technology_version: '8.0'
+      working_directory: src
+
+  test:
+    name: Test
+    needs: [build]
+    uses: invoisys/infra-ci-cd/.github/workflows/composite-test.yml@main
+    with:
+      technology: dotnet
+      technology_version: '8.0'
+      working_directory: src

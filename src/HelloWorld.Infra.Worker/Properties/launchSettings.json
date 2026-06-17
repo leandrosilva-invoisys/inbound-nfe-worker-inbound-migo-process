@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HelloWorld.Infra.Worker": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "INVOISYS_ENV": "sbx",
+        "HelloWorld__BaseAddress": "https://localhost"
+      },
+      "dotnetRunMessages": true
+    }
+  }
+}
