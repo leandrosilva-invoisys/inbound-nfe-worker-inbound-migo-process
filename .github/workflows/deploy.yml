@@ -1,5 +1,3 @@
-# Deploy: build, test, Docker e ECS. Substitua deployment_name, project_name e dockerfile_path.
-
 name: Deploy Worker
 
 on:
@@ -23,11 +21,9 @@ jobs:
       technology_version: '8.0'
       working_directory: src
       service_type: worker
-      # TODO: Substituir pelo nome do seu serviço (ex: sbx-0093-wrk-out-nfe-epec-handler-service)
-      deployment_name: ${{ github.ref_name }}-HelloWorld-worker-service
-      # TODO: Substituir pelo nome do projeto Worker (ex: NFeEpecHandler.Infra.Worker)
-      project_name: HelloWorld.Infra.Worker
-      ecr_repo: outbound
+      deployment_name: ${{ github.ref_name }}-0122-inb-wrk-inb-migo-process
+      project_name: Plugin.InboundMigoProcess.Infra.Worker
+      ecr_repo: inbound
     steps:
       - name: Resolve environment variables
         id: vars
@@ -79,8 +75,7 @@ jobs:
       push: true
       build_context: src
       use_template_dockerfile: false
-      # TODO: Ajustar caminho do Dockerfile (ex: src/NFeEpecHandler.Infra.Worker/Dockerfile)
-      dockerfile_path: src/HelloWorld.Infra.Worker/Dockerfile
+      dockerfile_path: src/Plugin.InboundMigoProcess.Infra.Worker/Dockerfile
     secrets:
       templates_token: ${{ secrets.INFRA_CI_CD_READ_TOKEN }}
 

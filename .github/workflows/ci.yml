@@ -1,5 +1,3 @@
-# CI: build e testes em PRs. Substitua HelloWorld pelo nome do seu projeto.
-
 name: CI
 
 on:
