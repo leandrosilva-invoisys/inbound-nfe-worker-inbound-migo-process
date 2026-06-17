@@ -5,7 +5,7 @@ using invoisys.SDK.Queue.Interfaces;
 
 namespace Plugin.InboundMigoProcess.Infra.Worker;
 
-[QueueName("0118-inbound-nfe-worker-inbound-migo-process")]
+[QueueName("0122-inbound-nfe-worker-inbound-migo-process")]
 public class Consumer : IConsumer<QueueMessageDTO>
 {
     private readonly IInboundMigoProcessService _processService;
