@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Plugin.InboundMigoProcess.Infra.Worker": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "INVOISYS_ENV": "sbx",
+        "OpenTelemetry__EnableMetricsConsoleExporter": "true",
+        "OpenTelemetry__EnableTracingConsoleExporter": "true"
+      },
+      "dotnetRunMessages": true
+    }
+  }
+}

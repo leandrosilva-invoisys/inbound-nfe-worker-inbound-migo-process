@@ -1,0 +1,8 @@
+{
+  "OpenTelemetry": {
+    "EnableMetricsConsoleExporter": true,
+    "EnableTracingConsoleExporter": true,
+    "OtlpEndpoint": ""
+  },
+  "ConnectionStrings": {}
+}
