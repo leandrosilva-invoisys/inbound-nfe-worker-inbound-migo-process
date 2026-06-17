@@ -1,0 +1,9 @@
+{
+  "HelloWorld": {
+    "BaseAddress": "https://dev-api.example.com"
+  },
+  "ConnectionStrings": {},
+  "_connectionStringSqlServer": "",
+  "_userNameAPI": "",
+  "_passwordAPI": ""
+}

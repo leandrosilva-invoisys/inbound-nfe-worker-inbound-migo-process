@@ -1,0 +1,45 @@
+configVersion: 1
+name: Template Worker .NET
+slug: invs-template-worker
+description: |-
+  Template (boilerplate) genérico para criação de workers .NET 8 em camadas, com dois modos de execução: job em loop periódico (BackgroundService) e consumer de fila SQS. Serve como repositório modelo no GitHub para gerar novos projetos de workers.
+
+  1. WORKER EM LOOP (BackgroundService)
+  Worker.cs implementa BackgroundService que, em loop com intervalo configurável (padrão 1 minuto), cria um escopo de DI por iteração, chama IHelloWorldRepository.ObterIdsParaProcessarAsync() para obter IDs pendentes, e para cada ID executa o caso de uso IProcessHelloWorldUseCase.Execute() que busca o dado via IHelloWorldRepository.ObterDadoPorIdAsync(), envia para uma API externa via IHelloWorldApiClient.EnviarAsync() (HTTP POST) e retorna ProcessHelloWorldOutput com Sucesso e Mensagem. Respeita CancellationToken para desligamento graceful. Cada iteração gera CorrelationId e TraceId via OpenTelemetry (HelloWorldActivitySource).
+
+  2. CONSUMER SQS
+  Consumer.cs implementa IConsumer<QueueMessageDTO> com atributo [QueueName("0000-invs-inbound-hello-world")] do invoisys.SDK.Queue. Ao receber uma mensagem, HelloWorldProcessService deserializa o Body (JSON com campo Id), monta ProcessHelloWorldInput e delega ao mesmo caso de uso ProcessHelloWorldUseCase. Retorna true para remover a mensagem da fila (sucesso ou payload inválido) ou false para reprocessamento (erro).
+
+  3. CASO DE USO (ProcessHelloWorldUseCase)
+  Orquestra o fluxo: busca dado no repositório por ID, envia para API externa via HttpClient, retorna resultado (Sucesso/Mensagem). Toda a lógica é placeholder para ser substituída pelo domínio real do novo projeto.
+
+  ARQUITETURA
+  Construído em .NET 8 com arquitetura em camadas em 4 projetos: Application (interfaces, DTOs, casos de uso), Infra (implementações de repositório com Dapper e API client HTTP), Infra.Worker (host, BackgroundService, Consumer SQS, serviços de processamento, logging Serilog e telemetria OpenTelemetry) e Test (testes unitários com NUnit e Moq).
+
+  TECNOLOGIAS E INTEGRAÇÕES
+  - Runtime: .NET 8 / Microsoft.Extensions.Hosting (Worker Service)
+  - Logging: Serilog com enrichers CorrelationId (WhiteBeard.Traceability) e TraceId (OpenTelemetry ActivitySource)
+  - Telemetria: OpenTelemetry (tracing e metrics) com export Console e OTLP
+  - Mensageria: AWS SQS via invoisys.SDK.Queue — fila placeholder 0000-invs-inbound-hello-world
+  - Banco de dados: placeholders com Dapper, Microsoft.Data.SqlClient e Npgsql (sem implementação concreta)
+  - HTTP Client: HttpClient configurado via appsettings (chave HelloWorld:BaseAddress) com Polly disponível para retry
+  - Segredos: AWS Secrets Manager via invoisys.SDK.SecretManager
+  - Storage: AWS S3 via invoisys.SDK.Storage (registrado, sem uso concreto no template)
+  - NuGet privado: feed invoisys-nuget.s3.amazonaws.com (invoisys.SDK.Host, Queue, Storage, SecretManager, Tenant)
+  - Deploy: Docker no AWS ECS via GitHub Actions (workflows ci.yml e deploy.yml), branches dev/qa/sbx/prd
+typeId: SERVICE
+fields:
+  tier: 4
+  lifecycle: Active
+links:
+  - name: GitHub Repository
+    type: REPOSITORY
+    url: 'https://github.com/invoisys/invs_template_worker'
+  - name: CI/CD Pipelines
+    type: DASHBOARD
+    url: 'https://github.com/invoisys/invs_template_worker/actions'
+labels:
+  - 'template'
+  - 'worker'
+  - 'dotnet'
+customFields: []
