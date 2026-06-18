@@ -7,10 +7,14 @@ using invoisys.SDK.Tenant.Extensions;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Plugin.InboundMigoProcess.Application.Audit.Interface;
+using Plugin.InboundMigoProcess.Application.Audit.Service;
 using Plugin.InboundMigoProcess.Application.Interfaces;
+using Plugin.InboundMigoProcess.Application.Services;
 using Plugin.InboundMigoProcess.Application.UseCases.ProcessInboundMigo;
 using Plugin.InboundMigoProcess.Application.UseCases.ProcessInboundMigoConfirm;
 using Plugin.InboundMigoProcess.Application.UseCases.ProcessInboundMigoReverse;
+using Plugin.InboundMigoProcess.Infra.ApiClients;
 using Plugin.InboundMigoProcess.Infra.Data;
 using Plugin.InboundMigoProcess.Infra.Worker;
 using Plugin.InboundMigoProcess.Infra.Worker.Logging;
@@ -88,7 +92,29 @@ var app = WorkerHostHelpers.BuildHost(services =>
     services.AddTenantServices();
     services.AddStorageServices();
 
+    services.AddHttpClient<ITagManagerApiClient, TagManagerApiClient>(client =>
+    {
+        client.BaseAddress = new Uri(configuration["TagManager:BaseAddress"]
+            ?? throw new InvalidOperationException("TagManager:BaseAddress não configurado."));
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
+
+    services.AddHttpClient<INfeEntradaEventoApiClient, NfeEntradaEventoApiClient>(client =>
+    {
+        var baseUrl = configuration["NfeEntradaApi:BaseAddress"]
+            ?? throw new InvalidOperationException("NfeEntradaApi:BaseAddress não configurado.");
+        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(30);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
+
     services.AddScoped<IInboundTransactionRepository, InboundTransactionRepository>();
+    services.AddScoped<IInbNfeRepository, InbNfeRepository>();
+    services.AddScoped<ITransactionResultMapper, TransactionResultMapper>();
+    services.AddScoped<ISapMessageEvaluator, SapMessageEvaluator>();
+    services.AddScoped<ITagValueBuilder, TagValueBuilder>();
+    services.AddScoped<IAuditAppService, AuditAppService>();
     services.AddScoped<IProcessInboundMigoConfirmUseCase, ProcessInboundMigoConfirmUseCase>();
     services.AddScoped<IProcessInboundMigoReverseUseCase, ProcessInboundMigoReverseUseCase>();
     services.AddScoped<IProcessInboundMigoUseCase>(sp => sp.GetRequiredService<IProcessInboundMigoConfirmUseCase>());
